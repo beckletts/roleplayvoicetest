@@ -62,8 +62,8 @@ export class VoiceService {
     return text
       .replace(/\./g, '. ')
       .replace(/\?/g, '? ')
-      .replace(/\!/g, '! ')
-      .replace(/\,/g, ', ');
+      .replace(/!/g, '! ')
+      .replace(/,/g, ', ');
   }
 
   private adjustProsody(text: string, emotion?: string): SpeechSynthesisUtterance {

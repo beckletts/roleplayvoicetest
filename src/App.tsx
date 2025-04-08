@@ -130,14 +130,14 @@ const TipItem = styled.li`
   color: #495057;
 `;
 
-interface Message {
+interface ChatMessage {
   text: string;
   isUser: boolean;
   emotion?: string;
 }
 
 const App: React.FC = () => {
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isListening, setIsListening] = useState(false);
   const [currentEmotion, setCurrentEmotion] = useState<string>('frustrated');
@@ -147,7 +147,7 @@ const App: React.FC = () => {
 
   useEffect(() => {
     // Initial message from customer
-    const initialMessage: Message = {
+    const initialMessage: ChatMessage = {
       text: conversationService.current.getInitialMessage(),
       isUser: false,
       emotion: 'frustrated'
@@ -167,7 +167,7 @@ const App: React.FC = () => {
     e.preventDefault();
     if (!inputValue.trim()) return;
 
-    const newMessage: Message = {
+    const newMessage: ChatMessage = {
       text: inputValue,
       isUser: true
     };
@@ -186,7 +186,7 @@ const App: React.FC = () => {
       
       setCurrentEmotion(emotion);
       
-      const response: Message = {
+      const response: ChatMessage = {
         text: responseText,
         isUser: false,
         emotion: emotion
