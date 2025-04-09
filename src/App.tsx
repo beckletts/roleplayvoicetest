@@ -141,21 +141,50 @@ const App: React.FC = () => {
   const [inputValue, setInputValue] = useState('');
   const [isListening, setIsListening] = useState(false);
   const [currentEmotion, setCurrentEmotion] = useState<string>('frustrated');
+  const [audioPermissionGranted, setAudioPermissionGranted] = useState(false);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const voiceService = useRef<VoiceService>(new VoiceService());
   const conversationService = useRef<ConversationService>(new ConversationService());
 
+  const initializeAudio = () => {
+    // This function helps trigger audio context in browsers that require user interaction
+    setAudioPermissionGranted(true);
+    
+    // Trigger a short silent sound to initialize audio context
+    try {
+      window.speechSynthesis.cancel();  // Reset any previous state
+      const utterance = new SpeechSynthesisUtterance(' ');  // Short text
+      utterance.volume = 0;  // Silent
+      window.speechSynthesis.speak(utterance);
+      
+      // Initialize the conversation after audio context is activated
+      const initialMessage: ChatMessage = {
+        text: conversationService.current.getInitialMessage(),
+        isUser: false,
+        emotion: 'frustrated'
+      };
+      setMessages([initialMessage]);
+      setCurrentEmotion('frustrated');
+      
+      // Small delay to ensure audio context is ready
+      setTimeout(() => {
+        voiceService.current.speak(initialMessage.text, 'frustrated');
+      }, 100);
+    } catch (error) {
+      console.error('Error initializing audio:', error);
+    }
+  };
+
   useEffect(() => {
-    // Initial message from customer
-    const initialMessage: ChatMessage = {
-      text: conversationService.current.getInitialMessage(),
-      isUser: false,
-      emotion: 'frustrated'
-    };
-    setMessages([initialMessage]);
-    setCurrentEmotion('frustrated');
-    voiceService.current.speak(initialMessage.text, 'frustrated');
-  }, []);
+    // Only load the initial message if audio permission is granted
+    // Otherwise wait for user interaction
+    if (audioPermissionGranted) {
+      // This will run after the user has clicked the start button
+      if (chatContainerRef.current) {
+        chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+      }
+    }
+  }, [audioPermissionGranted, messages]);
 
   useEffect(() => {
     if (chatContainerRef.current) {
@@ -214,57 +243,63 @@ const App: React.FC = () => {
   return (
     <AppContainer>
       <h1>Customer Support Role Play</h1>
-      <CustomerInfo>
-        <InfoItem>
-          <InfoLabel>Customer Name</InfoLabel>
-          <InfoValue>{customerDetails.name}</InfoValue>
-        </InfoItem>
-        <InfoItem>
-          <InfoLabel>Student ID</InfoLabel>
-          <InfoValue>{customerDetails.studentId}</InfoValue>
-        </InfoItem>
-        <InfoItem>
-          <InfoLabel>Center Number</InfoLabel>
-          <InfoValue>{customerDetails.centerNumber}</InfoValue>
-        </InfoItem>
-        <EmotionIndicator emotion={currentEmotion} title={currentEmotion} />
-      </CustomerInfo>
-      <TipsContainer>
-        <TipsTitle>Customer Support Tips:</TipsTitle>
-        <TipsList>
-          <TipItem>Start by acknowledging the customer's issue</TipItem>
-          <TipItem>Use empathetic language</TipItem>
-          <TipItem>Ask clarifying questions when needed</TipItem>
-          <TipItem>Provide clear, step-by-step solutions</TipItem>
-          <TipItem>Confirm understanding before proceeding</TipItem>
-        </TipsList>
-      </TipsContainer>
-      <ChatContainer ref={chatContainerRef}>
-        {messages.map((message, index) => (
-          <Message key={index} isUser={message.isUser} emotion={message.emotion}>
-            {!message.isUser && <EmotionIndicator emotion={message.emotion} />}
-            <MessageContent>{message.text}</MessageContent>
-          </Message>
-        ))}
-      </ChatContainer>
-      <form onSubmit={handleSubmit}>
-        <InputContainer>
-          <Input
-            type="text"
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            placeholder="Type your response as a customer support agent..."
-          />
-          <MicButton
-            type="button"
-            onClick={toggleListening}
-            isListening={isListening}
-          >
-            {isListening ? 'Stop' : 'Mic'}
-          </MicButton>
-          <Button type="submit">Send</Button>
-        </InputContainer>
-      </form>
+      
+      {!audioPermissionGranted ? (
+        <div style={{ textAlign: 'center', marginTop: '2rem' }}>
+          <p>Click the button below to start the role play and activate audio</p>
+          <Button onClick={initializeAudio}>Start Role Play</Button>
+        </div>
+      ) : (
+        <>
+          <CustomerInfo>
+            <InfoItem>
+              <InfoLabel>Customer Name</InfoLabel>
+              <InfoValue>{customerDetails.name}</InfoValue>
+            </InfoItem>
+            <InfoItem>
+              <InfoLabel>Center Number</InfoLabel>
+              <InfoValue>{customerDetails.centerNumber}</InfoValue>
+            </InfoItem>
+            <EmotionIndicator emotion={currentEmotion} title={currentEmotion} />
+          </CustomerInfo>
+          <TipsContainer>
+            <TipsTitle>Customer Support Tips:</TipsTitle>
+            <TipsList>
+              <TipItem>Start by acknowledging the customer's issue</TipItem>
+              <TipItem>Use empathetic language</TipItem>
+              <TipItem>Ask clarifying questions when needed</TipItem>
+              <TipItem>Provide clear, step-by-step solutions</TipItem>
+              <TipItem>Confirm understanding before proceeding</TipItem>
+            </TipsList>
+          </TipsContainer>
+          <ChatContainer ref={chatContainerRef}>
+            {messages.map((message, index) => (
+              <Message key={index} isUser={message.isUser} emotion={message.emotion}>
+                {!message.isUser && <EmotionIndicator emotion={message.emotion} />}
+                <MessageContent>{message.text}</MessageContent>
+              </Message>
+            ))}
+          </ChatContainer>
+          <form onSubmit={handleSubmit}>
+            <InputContainer>
+              <Input
+                type="text"
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                placeholder="Type your response here..."
+              />
+              <Button type="submit">Send</Button>
+              <MicButton 
+                type="button" 
+                onClick={toggleListening} 
+                isListening={isListening}
+              >
+                {isListening ? 'Stop' : 'Start'} Listening
+              </MicButton>
+            </InputContainer>
+          </form>
+        </>
+      )}
     </AppContainer>
   );
 };

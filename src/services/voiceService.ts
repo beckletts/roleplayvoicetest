@@ -7,24 +7,38 @@ export class VoiceService {
 
   constructor() {
     this.synth = window.speechSynthesis;
+    console.log('Speech synthesis initialized');
+    
+    // Resume audio context if suspended
+    if (this.synth.speaking) {
+      this.synth.cancel();
+    }
+    
     if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       this.recognition = new SpeechRecognition();
       this.recognition.continuous = false;
       this.recognition.interimResults = false;
       this.recognition.lang = 'en-GB';
+      console.log('Speech recognition initialized');
     }
 
     // Initialize voices when they become available
     if (this.synth.getVoices().length > 0) {
+      console.log('Voices available immediately');
       this.initializeVoices();
     } else {
-      this.synth.onvoiceschanged = () => this.initializeVoices();
+      console.log('Waiting for voices to become available');
+      this.synth.onvoiceschanged = () => {
+        console.log('Voices changed event fired');
+        this.initializeVoices();
+      };
     }
   }
 
   private initializeVoices() {
     const voices = this.synth.getVoices();
+    console.log('Available voices:', voices.length);
     
     // Prefer British English voices
     const britishVoices = voices.filter(voice => 
@@ -32,6 +46,7 @@ export class VoiceService {
       voice.name.includes('British') ||
       voice.name.includes('UK')
     );
+    console.log('British voices:', britishVoices.length);
 
     // Select the best available voice
     if (britishVoices.length > 0) {
@@ -40,18 +55,22 @@ export class VoiceService {
         voice.name.includes('Female') || 
         voice.name.includes('Woman')
       );
+      console.log('Female British voices:', femaleVoices.length);
       
       this.selectedVoice = femaleVoices.length > 0 ? femaleVoices[0] : britishVoices[0];
     } else {
       // Fallback to any English voice
       const englishVoices = voices.filter(voice => voice.lang.includes('en-'));
+      console.log('English voices:', englishVoices.length);
       this.selectedVoice = englishVoices.length > 0 ? englishVoices[0] : voices[0];
     }
 
+    console.log('Selected voice:', this.selectedVoice?.name);
     this.voiceReady = true;
 
     // If there's a pending initial message, speak it now
     if (this.pendingInitialMessage) {
+      console.log('Speaking pending message');
       this.speak(this.pendingInitialMessage.text, this.pendingInitialMessage.emotion);
       this.pendingInitialMessage = null;
     }
@@ -108,18 +127,39 @@ export class VoiceService {
   }
 
   speak(text: string, emotion?: string): void {
+    console.log('Attempting to speak:', text);
+    
     if (this.synth.speaking) {
+      console.log('Canceling previous speech');
       this.synth.cancel();
     }
 
     // If voice is not ready, store the message and try again later
     if (!this.voiceReady) {
+      console.log('Voice not ready, storing message');
       this.pendingInitialMessage = { text, emotion };
       return;
     }
 
-    const utterance = this.adjustProsody(text, emotion);
-    this.synth.speak(utterance);
+    try {
+      const utterance = this.adjustProsody(text, emotion);
+      
+      utterance.onstart = () => console.log('Speech started');
+      utterance.onend = () => console.log('Speech ended');
+      utterance.onerror = (event) => console.error('Speech error:', event);
+      
+      console.log('Speaking with voice:', this.selectedVoice?.name);
+      this.synth.speak(utterance);
+      
+      // Chrome and Safari fix: Need to resume audio context
+      // This is needed because some browsers require user interaction before allowing audio
+      if (this.synth.paused) {
+        console.log('Speech synthesis was paused, resuming');
+        this.synth.resume();
+      }
+    } catch (error) {
+      console.error('Error speaking:', error);
+    }
   }
 
   startListening(onResult: (text: string) => void): void {

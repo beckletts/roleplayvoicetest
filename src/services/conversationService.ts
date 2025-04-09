@@ -1,13 +1,12 @@
 interface Response {
   text: string;
   keywords: string[];
-  nextResponses: Response[];
-  emotion?: 'frustrated' | 'confused' | 'anxious' | 'calm' | 'satisfied';
-  customerDetails?: {
+  emotion?: string;
+  customerDetails: {
     name: string;
-    studentId: string;
     centerNumber: string;
   };
+  nextResponses: Response[];
 }
 
 export class ConversationService {
@@ -17,7 +16,6 @@ export class ConversationService {
   private scenarioResolved: boolean;
   private customerDetails: {
     name: string;
-    studentId: string;
     centerNumber: string;
   };
 
@@ -27,26 +25,36 @@ export class ConversationService {
     this.scenarioResolved = false;
     this.customerDetails = {
       name: 'Sarah Johnson',
-      studentId: 'STU2024001',
-      centerNumber: 'CN12345'
+      centerNumber: '54321'
     };
     this.responses = [
       {
         text: "Hello, I'm having trouble with my exam registration. The system keeps showing an error message when I try to submit my application. I've been trying for hours and I'm getting really frustrated. Can you help me?",
         keywords: ['help', 'error', 'registration', 'submit'],
         emotion: 'frustrated',
-        customerDetails: this.customerDetails,
+        customerDetails: {
+          name: 'Sarah Johnson',
+          centerNumber: '54321'
+        },
         nextResponses: [
           {
             text: "The error message says 'Invalid student ID format'. I've checked my ID number multiple times and it's correct. I don't understand why it's not working.",
             keywords: ['id', 'format', 'invalid', 'number'],
             emotion: 'confused',
+            customerDetails: {
+              name: 'Sarah Johnson',
+              centerNumber: '54321'
+            },
             nextResponses: []
           },
           {
             text: "I need to register for my final exams by tomorrow, and I'm really worried I won't be able to. What should I do?",
             keywords: ['deadline', 'tomorrow', 'worried', 'urgent'],
             emotion: 'anxious',
+            customerDetails: {
+              name: 'Sarah Johnson',
+              centerNumber: '54321'
+            },
             nextResponses: []
           }
         ]
@@ -61,6 +69,10 @@ export class ConversationService {
             text: "Both exams are core modules for my degree, and I can't afford to miss either of them. Is there any way to reschedule one of them?",
             keywords: ['core', 'modules', 'reschedule', 'important'],
             emotion: 'anxious',
+            customerDetails: {
+              name: 'Sarah Johnson',
+              centerNumber: '54321'
+            },
             nextResponses: []
           }
         ]
@@ -75,6 +87,10 @@ export class ConversationService {
             text: "I have dyslexia and need extra time and a quiet room. I submitted all the required forms last month. Can you check the status of my request?",
             keywords: ['dyslexia', 'extra time', 'quiet room', 'status'],
             emotion: 'calm',
+            customerDetails: {
+              name: 'Sarah Johnson',
+              centerNumber: '54321'
+            },
             nextResponses: []
           }
         ]
@@ -89,11 +105,44 @@ export class ConversationService {
             text: "I have the hospital documents and a letter from my doctor. When is the deadline to submit these for consideration?",
             keywords: ['hospital', 'doctor', 'deadline', 'submit'],
             emotion: 'calm',
+            customerDetails: {
+              name: 'Sarah Johnson',
+              centerNumber: '54321'
+            },
             nextResponses: []
           }
         ]
+      },
+      {
+        text: "I'm not sure how that helps with my current issue. Could you please provide more specific assistance?",
+        keywords: ['not sure', 'help', 'specific'],
+        emotion: 'confused',
+        customerDetails: {
+          name: 'Sarah Johnson',
+          centerNumber: '54321'
+        },
+        nextResponses: []
+      },
+      {
+        text: "Thank you for your help! That resolves my issue. I appreciate your assistance.",
+        keywords: ['thank', 'resolve', 'appreciate'],
+        emotion: 'satisfied',
+        customerDetails: {
+          name: 'Sarah Johnson',
+          centerNumber: '54321'
+        },
+        nextResponses: []
       }
     ];
+
+    // Remove studentId from responses
+    this.responses = this.responses.map(response => ({
+      ...response,
+      customerDetails: {
+        name: response.customerDetails.name,
+        centerNumber: response.customerDetails.centerNumber
+      }
+    }));
   }
 
   getInitialMessage(): string {
@@ -101,7 +150,7 @@ export class ConversationService {
     return scenario.text;
   }
 
-  getCustomerDetails(): { name: string; studentId: string; centerNumber: string } {
+  getCustomerDetails(): { name: string; centerNumber: string } {
     return this.customerDetails;
   }
 
@@ -114,7 +163,7 @@ export class ConversationService {
       return `My name is ${this.customerDetails.name}.`;
     }
     if (input.includes('id') || input.includes('student number')) {
-      return `My student ID is ${this.customerDetails.studentId}.`;
+      return `My student ID is not available.`;
     }
     if (input.includes('center') || input.includes('centre')) {
       return `My center number is ${this.customerDetails.centerNumber}.`;
